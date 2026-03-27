@@ -8,7 +8,7 @@
   {
     "id": "slice-001",
     "title": "Log ingestion + parsing",
-    "status": "in_progress",
+    "status": "done",
     "notes": "Paste/upload logs, basic format detection, extract sections"
   },
   {
