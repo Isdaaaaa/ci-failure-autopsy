@@ -46,7 +46,7 @@ export default function Shell() {
   };
 
   const topSteps = parsed.steps.slice(0, 4);
-  const topErrors = parsed.errorLines.slice(0, 5);
+  const topSignatures = parsed.signatures.slice(0, 5);
 
   return (
     <main className="min-h-screen px-4 py-6 sm:px-6 lg:px-10">
@@ -126,13 +126,25 @@ export default function Shell() {
 
           <div className="space-y-4">
             <article className={panel}>
-              <h2 className="mb-3 text-sm font-semibold text-slate">Signature Cards</h2>
-              {topErrors.length > 0 ? (
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h2 className="text-sm font-semibold text-slate">Signature Cards</h2>
+                <span className="rounded-md border border-cyan/40 bg-cyan/10 px-2 py-1 text-[11px] uppercase tracking-wide text-cyan">
+                  stage: {parsed.classification.stage}
+                </span>
+              </div>
+              <p className="mb-3 text-xs text-slate-400">
+                confidence {(parsed.classification.confidence * 100).toFixed(0)}%{parsed.classification.line ? ` · line ${parsed.classification.line}` : ''}
+              </p>
+              {topSignatures.length > 0 ? (
                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
-                  {topErrors.map((error) => (
-                    <div key={`${error.line}-${error.text}`} className="rounded-lg border border-amber/50 bg-slate-950/60 p-3">
-                      <p className="text-xs text-amber">line {error.line}</p>
-                      <p className="mt-1 font-mono text-xs text-slate-200">{error.text}</p>
+                  {topSignatures.map((signature) => (
+                    <div key={`${signature.ruleId}-${signature.line}-${signature.excerpt}`} className="rounded-lg border border-amber/50 bg-slate-950/60 p-3">
+                      <div className="flex items-center justify-between gap-2 text-xs">
+                        <p className="text-amber">{signature.name}</p>
+                        <p className="font-mono text-slate-400">{(signature.confidence * 100).toFixed(0)}%</p>
+                      </div>
+                      <p className="mt-1 text-[11px] uppercase tracking-wide text-cyan">{signature.stage}</p>
+                      <p className="mt-1 font-mono text-xs text-slate-200">line {signature.line}: {signature.excerpt}</p>
                     </div>
                   ))}
                 </div>
