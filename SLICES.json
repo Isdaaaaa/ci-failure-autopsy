@@ -1,0 +1,38 @@
+[
+  {
+    "id": "slice-000",
+    "title": "Bootstrap scaffolding",
+    "status": "todo",
+    "notes": "Repo setup, tooling, base UI shell"
+  },
+  {
+    "id": "slice-001",
+    "title": "Log ingestion + parsing",
+    "status": "todo",
+    "notes": "Paste/upload logs, basic format detection, extract sections"
+  },
+  {
+    "id": "slice-002",
+    "title": "Failure classification",
+    "status": "todo",
+    "notes": "Identify build/test/lint/deploy stage, key error signatures"
+  },
+  {
+    "id": "slice-003",
+    "title": "Timeline + evidence view",
+    "status": "todo",
+    "notes": "Render step timeline, highlight culprit snippets"
+  },
+  {
+    "id": "slice-004",
+    "title": "Fix suggestions + PR plan",
+    "status": "todo",
+    "notes": "Generate checklist, suggested commit message/PR description"
+  },
+  {
+    "id": "slice-005",
+    "title": "Demo data + polish",
+    "status": "todo",
+    "notes": "Sample logs, screenshots/recordings, README polish"
+  }
+]
