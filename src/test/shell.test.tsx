@@ -12,6 +12,9 @@ describe('Shell', () => {
     expect(screen.getByText('Signature Cards')).toBeInTheDocument();
     expect(screen.getByText('Fix Checklist')).toBeInTheDocument();
     expect(screen.getByText('PR Plan Box')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /copy checklist/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /copy commit/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /copy pr text/i })).toBeInTheDocument();
   });
 
   it('renders timeline badges and evidence excerpts from parsed output', () => {
@@ -42,6 +45,11 @@ describe('Shell', () => {
     const testEvidence = screen.getByLabelText('Evidence for Run tests');
     expect(within(testEvidence).getByText(/line 6/i)).toBeInTheDocument();
     expect(within(testEvidence).getByText(/expected true to be false/i)).toBeInTheDocument();
+
+    expect(screen.getAllByText(/inspect culprit context around line 3/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/suggested commit message/i)).toBeInTheDocument();
+    expect(screen.getByText(/fix\(ci\): resolve dependency install failure/i)).toBeInTheDocument();
+    expect(screen.getByText(/suggested pr title/i)).toBeInTheDocument();
   });
 
   it('resets to empty timeline state when payload is cleared', () => {
