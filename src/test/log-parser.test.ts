@@ -18,6 +18,24 @@ describe('parseCiLog', () => {
     expect(parsed.steps.length).toBeGreaterThanOrEqual(2);
     expect(parsed.errorLines.length).toBeGreaterThanOrEqual(2);
     expect(parsed.summary.errorCount).toBeGreaterThanOrEqual(2);
+    expect(parsed.classification.stage).toBe('build');
+    expect(parsed.classification.line).toBe(3);
+    expect(parsed.signatures[0]?.ruleId).toBe('build-deps');
+  });
+
+  it('classifies lint failures with confidence and signatures', () => {
+    const log = [
+      '##[group]Lint',
+      'npm run lint',
+      'ESLint: 14 problems (14 errors, 0 warnings)',
+      'error Command failed with exit code 1.'
+    ].join('\n');
+
+    const parsed = parseCiLog(log);
+
+    expect(parsed.classification.stage).toBe('lint');
+    expect(parsed.classification.confidence).toBeGreaterThan(0.9);
+    expect(parsed.signatures.some((s) => s.stage === 'lint')).toBe(true);
   });
 
   it('returns empty summary for blank payloads', () => {

@@ -25,6 +25,7 @@ describe('Shell', () => {
     });
 
     expect(screen.getByText(/3 lines parsed/i)).toBeInTheDocument();
-    expect(screen.getByText(/line 3/i)).toBeInTheDocument();
+    expect(screen.getByText(/stage: build/i)).toBeInTheDocument();
+    expect(screen.getByText(/confidence 68% · line 1/i)).toBeInTheDocument();
   });
 });
