@@ -2,6 +2,7 @@
 
 import React, { ChangeEvent, DragEvent, useMemo, useState } from 'react';
 import { parseCiLog } from '@/lib/log-parser';
+import { buildFixSuggestions } from '@/lib/fix-suggestions';
 
 const panel =
   'rounded-xl border border-slate-700/60 bg-slate-900/45 p-4 shadow-panel backdrop-blur-sm';
@@ -21,8 +22,23 @@ export default function Shell() {
   const [rawLog, setRawLog] = useState('');
   const [isParsing, setIsParsing] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
+  const [copyState, setCopyState] = useState<Record<string, 'idle' | 'copied' | 'failed'>>({});
 
   const parsed = useMemo(() => parseCiLog(rawLog), [rawLog]);
+  const suggestions = useMemo(() => buildFixSuggestions(parsed), [parsed]);
+
+  const copyText = async (key: string, value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopyState((prev) => ({ ...prev, [key]: 'copied' }));
+    } catch {
+      setCopyState((prev) => ({ ...prev, [key]: 'failed' }));
+    } finally {
+      setTimeout(() => {
+        setCopyState((prev) => ({ ...prev, [key]: 'idle' }));
+      }, 1400);
+    }
+  };
 
   const ingestFile = async (file: File) => {
     setIsParsing(true);
@@ -71,6 +87,7 @@ export default function Shell() {
 
   const topSteps = timelineSteps.slice(0, 6);
   const topSignatures = parsed.signatures.slice(0, 5);
+  const checklistCopy = suggestions.checklist.map((item) => `- [ ] ${item}`).join('\n');
 
   return (
     <main className="min-h-screen px-4 py-6 sm:px-6 lg:px-10">
@@ -256,28 +273,103 @@ export default function Shell() {
             </article>
 
             <article className={panel}>
-              <h2 className="mb-3 text-sm font-semibold text-slate">Fix Checklist</h2>
-              <ul className="space-y-2 text-sm text-slate-300">
-                {['Reproduce failure locally', 'Pin culprit step', 'Draft targeted patch'].map((item) => (
-                  <li
-                    key={item}
-                    className="flex items-center gap-2 rounded-md border border-slate-700/60 bg-slate-950/50 px-3 py-2"
-                  >
-                    <span className="h-3 w-3 rounded border border-cyan/60" aria-hidden="true" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h2 className="text-sm font-semibold text-slate">Fix Checklist</h2>
+                <button
+                  type="button"
+                  onClick={() => copyText('checklist', checklistCopy)}
+                  className="rounded-md border border-cyan/45 bg-cyan/10 px-2.5 py-1 text-[11px] font-medium text-cyan transition hover:bg-cyan/20"
+                >
+                  {copyState.checklist === 'copied'
+                    ? 'Copied'
+                    : copyState.checklist === 'failed'
+                      ? 'Copy failed'
+                      : 'Copy checklist'}
+                </button>
+              </div>
+
+              {isParsing ? (
+                <div className="space-y-2" aria-label="Checklist loading state">
+                  {[0, 1, 2].map((item) => (
+                    <div
+                      key={item}
+                      className="loading-shimmer h-10 rounded-md border border-slate-700/70 bg-slate-950/70"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <ul className="space-y-2 text-sm text-slate-300">
+                  {suggestions.checklist.map((item) => (
+                    <li
+                      key={item}
+                      className="flex items-start gap-2 rounded-md border border-slate-700/60 bg-slate-950/50 px-3 py-2"
+                    >
+                      <span className="mt-0.5 h-3 w-3 rounded border border-cyan/60" aria-hidden="true" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </article>
 
             <article className={`${panel} border-amber/35`}>
-              <h2 className="mb-2 text-sm font-semibold text-amber">PR Plan Box</h2>
-              <p className="text-sm text-slate-300">
-                Errors: {parsed.summary.errorCount} · Warnings: {parsed.summary.warningCount}
-              </p>
-              <p className="mt-2 font-mono text-xs text-slate-400">
-                `fix(ci): isolate failure source and patch`
-              </p>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold text-amber">PR Plan Box</h2>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => copyText('commit', suggestions.commitMessage)}
+                    className="rounded-md border border-slate-600 bg-slate-900/60 px-2 py-1 text-[11px] text-slate-200 hover:border-cyan/50 hover:text-cyan"
+                  >
+                    {copyState.commit === 'copied'
+                      ? 'Commit copied'
+                      : copyState.commit === 'failed'
+                        ? 'Copy failed'
+                        : 'Copy commit'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      copyText('pr', `Title: ${suggestions.prTitle}\n\n${suggestions.prDescription}`)
+                    }
+                    className="rounded-md border border-cyan/45 bg-cyan/10 px-2 py-1 text-[11px] text-cyan hover:bg-cyan/20"
+                  >
+                    {copyState.pr === 'copied'
+                      ? 'PR copied'
+                      : copyState.pr === 'failed'
+                        ? 'Copy failed'
+                        : 'Copy PR text'}
+                  </button>
+                </div>
+              </div>
+
+              {isParsing ? (
+                <div className="space-y-2" aria-label="PR plan loading state">
+                  {[0, 1, 2, 3].map((item) => (
+                    <div
+                      key={item}
+                      className="loading-shimmer h-7 rounded-md border border-slate-700/70 bg-slate-950/70"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <p className="text-xs uppercase tracking-wide text-cyan">Suggested commit message</p>
+                  <p className="mt-1 rounded-md border border-slate-700/70 bg-slate-950/65 px-3 py-2 font-mono text-xs text-slate-200">
+                    {suggestions.commitMessage}
+                  </p>
+
+                  <p className="mt-3 text-xs uppercase tracking-wide text-cyan">Suggested PR title</p>
+                  <p className="mt-1 rounded-md border border-slate-700/70 bg-slate-950/65 px-3 py-2 text-sm text-slate-200">
+                    {suggestions.prTitle}
+                  </p>
+
+                  <p className="mt-3 text-xs uppercase tracking-wide text-cyan">Description / plan</p>
+                  <pre className="mt-1 overflow-x-auto whitespace-pre-wrap rounded-md border border-slate-700/70 bg-slate-950/65 px-3 py-2 font-mono text-xs text-slate-300">
+                    {suggestions.prDescription}
+                  </pre>
+                </>
+              )}
             </article>
           </div>
         </div>
