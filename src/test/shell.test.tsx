@@ -52,6 +52,16 @@ describe('Shell', () => {
     expect(screen.getByText(/suggested pr title/i)).toBeInTheDocument();
   });
 
+  it('loads demo incidents with one click', async () => {
+    render(<Shell />);
+
+    fireEvent.click(screen.getByRole('button', { name: /github actions · typescript build break/i }));
+
+    expect(screen.getByText(/9 lines parsed/i)).toBeInTheDocument();
+    expect(await screen.findByText('STEP 01')).toBeInTheDocument();
+    expect(await screen.findByText(/^TypeScript build failure$/i)).toBeInTheDocument();
+  });
+
   it('resets to empty timeline state when payload is cleared', () => {
     render(<Shell />);
 

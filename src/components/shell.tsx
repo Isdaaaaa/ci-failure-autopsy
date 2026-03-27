@@ -3,6 +3,7 @@
 import React, { ChangeEvent, DragEvent, useMemo, useState } from 'react';
 import { parseCiLog } from '@/lib/log-parser';
 import { buildFixSuggestions } from '@/lib/fix-suggestions';
+import { DEMO_LOGS } from '@/lib/demo-logs';
 
 const panel =
   'rounded-xl border border-slate-700/60 bg-slate-900/45 p-4 shadow-panel backdrop-blur-sm';
@@ -14,6 +15,11 @@ const providerLabel = {
   unknown: 'Unknown CI'
 } as const;
 
+const severityStyle = {
+  high: 'border-amber/60 bg-amber/15 text-amber',
+  medium: 'border-cyan/45 bg-cyan/12 text-cyan'
+} as const;
+
 function stepBadge(index: number) {
   return `STEP ${String(index + 1).padStart(2, '0')}`;
 }
@@ -22,6 +28,7 @@ export default function Shell() {
   const [rawLog, setRawLog] = useState('');
   const [isParsing, setIsParsing] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
+  const [activeDemo, setActiveDemo] = useState<string | null>(null);
   const [copyState, setCopyState] = useState<Record<string, 'idle' | 'copied' | 'failed'>>({});
 
   const parsed = useMemo(() => parseCiLog(rawLog), [rawLog]);
@@ -53,8 +60,19 @@ export default function Shell() {
   const onUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    setActiveDemo(null);
     await ingestFile(file);
     event.target.value = '';
+  };
+
+  const loadDemo = (demoId: string) => {
+    const selected = DEMO_LOGS.find((entry) => entry.id === demoId);
+    if (!selected) return;
+
+    setIsParsing(true);
+    setActiveDemo(demoId);
+    setRawLog(selected.log);
+    setTimeout(() => setIsParsing(false), 180);
   };
 
   const onDrop = async (event: DragEvent<HTMLDivElement>) => {
@@ -62,6 +80,7 @@ export default function Shell() {
     setIsDragActive(false);
     const file = event.dataTransfer.files?.[0];
     if (!file) return;
+    setActiveDemo(null);
     await ingestFile(file);
   };
 
@@ -111,7 +130,10 @@ export default function Shell() {
             </p>
             <button
               type="button"
-              onClick={() => setRawLog('')}
+              onClick={() => {
+                setRawLog('');
+                setActiveDemo(null);
+              }}
               className="rounded-md border border-slate-600 px-2.5 py-1.5 text-xs text-slate-300 transition hover:border-cyan/60 hover:text-cyan"
               disabled={!rawLog}
             >
@@ -149,7 +171,10 @@ export default function Shell() {
               >
                 <textarea
                   value={rawLog}
-                  onChange={(event) => setRawLog(event.target.value)}
+                  onChange={(event) => {
+                    setRawLog(event.target.value);
+                    if (activeDemo) setActiveDemo(null);
+                  }}
                   placeholder="Paste CI logs here…"
                   className="h-48 w-full resize-y rounded-lg border border-slate-700/70 bg-slate-950/70 p-3 font-mono text-xs leading-6 text-slate-200 outline-none ring-cyan/40 transition focus:ring"
                 />
@@ -158,6 +183,53 @@ export default function Shell() {
                 Supports paste, drag-and-drop, and file upload for GitHub Actions, GitLab,
                 Jenkins, or generic CI output.
               </p>
+
+              <div className="mt-3 rounded-lg border border-slate-700/60 bg-slate-950/55 p-3">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-xs font-medium uppercase tracking-[0.12em] text-cyan">Demo incidents</p>
+                  <p className="text-[11px] text-slate-400">One-click sample payloads</p>
+                </div>
+                <div className="grid gap-2">
+                  {DEMO_LOGS.map((demo) => {
+                    const selected = activeDemo === demo.id;
+                    return (
+                      <button
+                        key={demo.id}
+                        type="button"
+                        onClick={() => loadDemo(demo.id)}
+                        className={`rounded-lg border px-3 py-2 text-left transition ${
+                          selected
+                            ? 'border-cyan/60 bg-cyan/14 shadow-[0_0_0_1px_rgba(6,182,212,0.2)]'
+                            : 'border-slate-700/70 bg-slate-900/55 hover:border-cyan/35 hover:bg-slate-900/80'
+                        }`}
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-xs font-medium text-slate">{demo.label}</p>
+                          <span className={`rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wide ${severityStyle[demo.severity]}`}>
+                            {demo.severity}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-[11px] text-slate-400">{demo.focus}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                <div className="rounded-md border border-slate-700/60 bg-slate-900/50 px-2.5 py-2 text-center">
+                  <p className="font-mono text-sm text-slate">{parsed.summary.errorCount}</p>
+                  <p className="mt-1 text-[10px] uppercase tracking-wide text-slate-400">Errors</p>
+                </div>
+                <div className="rounded-md border border-slate-700/60 bg-slate-900/50 px-2.5 py-2 text-center">
+                  <p className="font-mono text-sm text-slate">{parsed.summary.warningCount}</p>
+                  <p className="mt-1 text-[10px] uppercase tracking-wide text-slate-400">Warnings</p>
+                </div>
+                <div className="rounded-md border border-slate-700/60 bg-slate-900/50 px-2.5 py-2 text-center">
+                  <p className="font-mono text-sm text-slate">{parsed.signatures.length}</p>
+                  <p className="mt-1 text-[10px] uppercase tracking-wide text-slate-400">Signatures</p>
+                </div>
+              </div>
             </article>
 
             <article className={panel}>
@@ -228,6 +300,13 @@ export default function Shell() {
                   <p className="mt-1 text-xs text-slate-400">
                     Ingest a CI log to materialize step badges and line-cited evidence excerpts.
                   </p>
+                  <button
+                    type="button"
+                    onClick={() => loadDemo(DEMO_LOGS[0].id)}
+                    className="mt-3 rounded-md border border-cyan/45 bg-cyan/10 px-3 py-1.5 text-xs font-medium text-cyan transition hover:bg-cyan/20"
+                  >
+                    Load demo incident
+                  </button>
                 </div>
               )}
             </article>
@@ -268,7 +347,12 @@ export default function Shell() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-slate-300">No error signatures extracted yet.</p>
+                <div className="rounded-lg border border-dashed border-slate-700/70 bg-slate-950/45 px-3 py-4">
+                  <p className="text-sm font-medium text-slate">No signatures extracted yet</p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    Load a demo or paste a failing CI segment to infer culprit patterns and confidence.
+                  </p>
+                </div>
               )}
             </article>
 
