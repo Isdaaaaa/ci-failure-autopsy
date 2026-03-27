@@ -14,7 +14,7 @@
   {
     "id": "slice-002",
     "title": "Failure classification",
-    "status": "in_progress",
+    "status": "done",
     "notes": "Identify build/test/lint/deploy stage, key error signatures"
   },
   {
