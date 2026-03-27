@@ -20,7 +20,7 @@
   {
     "id": "slice-003",
     "title": "Timeline + evidence view",
-    "status": "in_progress",
+    "status": "done",
     "notes": "Render step timeline, highlight culprit snippets"
   },
   {
